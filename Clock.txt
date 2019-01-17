@@ -1,0 +1,106 @@
+title 'clock.asm' to show time on monitor 
+;----------------------------------------
+stacksg segment stack 'stack'
+    dw 32 dup(0)
+stacksg ends
+;-----------------------
+
+codesg segment 'code'
+       assume ss:stacksg , cs:codesg
+main   proc far
+       call clear          ;1-clear monitor
+back1:
+       call cursor         ;2-set cursor 
+       call time           ;3-determine times
+       mov al , ch         ;4-move hour to al
+       call displa1        ;5-display hour
+       call colon          ;6-display ':' on monitor
+       mov al , cl         ;7-move minute to al
+       call displa1        ;8-display minuts
+       call colon          ;9-display ':' on monitor
+       mov al , dh         ;10-move seconds to al
+       call displa1        ;11-display seconds
+       jmp back1           ;12-else go to back1
+       mov ax , 4c00h      ;13-end of
+       int 21h             ;14-processing
+main   endp                ;end of main procedure
+
+;                clear monitor
+;                -------------
+
+clear  proc near
+       push bx            ;15-push bx
+       mov ax , 0600h     ;16-request interrupt
+       mov cx , 0000h     ;17-left of corner 
+       mov dx , 184fh     ;18-right down corner
+       mov bh , 0eh       ;19-color yellow on black
+       int 10h            ;20-active interrupt
+       pop bx             ;21-restore bx
+       ret                ;22-return to main
+clear  endp               ;end of procedure
+
+;            set cursor on 12,40
+;            -------------------
+
+cursor proc near         
+       push dx            ;23-push dx
+       mov ah , 02h       ;24-request interrupt
+       mov bh , 00h       ;25-use page 0
+       mov dh , 12        ;26-row 12
+       mov dl , 40        ;27-colomn 40
+       int 10h            ;28-active interrupt
+       pop dx             ;29-restore bx
+       ret                ;30-return to main
+cursor endp               ;end of procedure
+
+;            get time
+;            ---------
+
+time   proc near
+       mov ah , 2ch      ;31-request interrupt
+       int 21h           ;32-active interrupt
+       ret               ;33- return to main
+time   endp              ;end of procedure
+
+;          diplay ':' on monitor
+;          ---------------------
+
+colon proc near
+      push dx            ;34-push dx
+      mov dl , ':'       ;35-move ascii of : to dl
+      mov ah , 02h       ;36-request interrupt
+      int 21h            ;37-active interrupt
+      pop dx             ;38-restore its value
+      ret                ;39-return to main
+colon endp               ; end of procedure
+
+;        display numbers on monitor
+;        --------------------------
+
+displa1 proc near
+        push dx          ;40-push dx
+
+;       changing binary to ascii
+;       ------------------------
+
+      mov bl , 10        ;41-mov 10 for division
+      mov ah , 00h       ;42-clear ah
+      div bl             ;43-divide ax to 10
+      mov bx , ax        ;44-store on bx
+      add bl , 30h       ;45-change bl to ascii
+      add bh , 30h       ;46-change bh to ascii
+
+;      showing ascii numbers on monitor
+;      --------------------------------
+
+      mov ah , 02h       ;47-display higher
+      mov dl , bl        ;48-number
+      int 21h            ;49-active interrupt
+      mov dl , bh        ;50-display lower number
+      int 21h            ;51-active interrupt
+      pop dx             ;52-restore its value
+      ret                ;53-return to main
+displa1 endp             ;end of procedure
+codesg ends              ;end of segment
+end main                 ;end of program
+            
